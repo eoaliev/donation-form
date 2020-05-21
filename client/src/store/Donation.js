@@ -18,7 +18,24 @@ export default {
     currency: 'USD',
   }),
   mutations: {
+    setCurrency(state, currency){
+      state.currency = currency;
+    },
+    setSuggestion(state, suggestion){
+      suggestion = parseInt(suggestion);
+      if (isNaN(suggestion)) {
+        suggestion = '';
+      }
+
+      state.suggestion = suggestion;
+    },
   },
   actions: {
+    setCurrency({commit}, currency){
+      commit('setCurrency', currency);
+    },
+    setSuggestion({commit}, suggestion){
+      commit('setSuggestion', suggestion);
+    },
   },
 };
