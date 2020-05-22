@@ -48,7 +48,15 @@
       </select>
     </div>
 
-    <button class="donation-form-submit">{{ $t('DONATION_SUBMIT') }}</button>
+    <button
+      class="donation-form-submit"
+      @click.stop.prevent="donate"
+    >
+      <template v-if="loading">
+        <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 100 100" enable-background="new 0 0 0 0" xml:space="preserve"> <path fill="#fff" d="M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50"> <animateTransform attributeName="transform" attributeType="XML" type="rotate" dur="1s" from="0 50 50" to="360 50 50" repeatCount="indefinite"/> </path> </svg>
+      </template>
+      <span v-else>{{ $t('DONATION_SUBMIT') }}</span>
+    </button>
   </div>
 </div>
 </template>
@@ -74,6 +82,7 @@ export default {
     return {
       numberFormatter: new Intl.NumberFormat('en-US'),
       CURRENCY_BASE: 'USD',
+      loading: false,
     };
   },
   computed:{
@@ -114,17 +123,24 @@ export default {
         }
       );
     },
-    preparedAmount(){
-      if (0 >= this.amount) {
-        const preset = this.preparedPresets.find(
-          ({value}) => value === this.suggestion
-        );
-
-        return preset ? preset.label: '';
+    amountValue(){
+      let amount = this.amount;
+      if (0 < amount) {
+        return amount;
       }
 
+      const preset = this.preparedPresets.find(
+        ({value}) => value === this.suggestion
+      );
+      if (preset) {
+        return preset.converted;
+      }
+
+      return this.suggestion || 0;
+    },
+    preparedAmount(){
       return this.numberFormatter.format(
-        this.amount
+        this.amountValue
       );
     },
   },
@@ -164,6 +180,43 @@ export default {
     },
     clearNumberValue(value){
       return value.replace(/[^0-9]+/g, '');
+    },
+    async donate(){
+      if (this.loading) {
+        return;
+      }
+
+      this.loading = true;
+
+      const response = await fetch(
+        '/donate',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json;charset=utf-8'
+          },
+          body: JSON.stringify({
+            amount: this.amountValue,
+            currency: this.currency,
+          }),
+        }
+      );
+
+      await this.showDonationResult(response);
+
+      this.loading = false;
+    },
+    async showDonationResult(response){
+      if (!response.ok) {
+        return alert(this.$t('DONATION_FAILURE'));
+      }
+
+      const result = await response.json();
+      if (!result.ok) {
+        return alert(this.$t('DONATION_FAILURE'));
+      }
+
+      alert(this.$t('DONATION_SUCCESS'));
     }
   },
 }
@@ -172,10 +225,14 @@ export default {
 <i18n>
 {
   "ru": {
-    "DONATION_SUBMIT": "Пожертвовать"
+    "DONATION_SUBMIT": "Пожертвовать",
+    "DONATION_SUCCESS": "Спасибо за ваше пожертвование!",
+    "DONATION_FAILURE": "Не удалось создать пожертвование. Попробуйте повторить позже."
   },
   "en": {
-    "DONATION_SUBMIT": "Donate"
+    "DONATION_SUBMIT": "Donate",
+    "DONATION_SUCCESS": "Thank you for your donation!",
+    "DONATION_FAILURE": "Failed to create donation. Please try again later."
   }
 }
 </i18n>
@@ -265,6 +322,13 @@ export default {
     text-transform: uppercase;
     font-weight: 600;
     border-radius: 5px;
+
+    svg {
+      width: 40px;
+      height: 40px;
+      vertical-align: top;
+      margin: -5px;
+    }
   }
 }
 </style>

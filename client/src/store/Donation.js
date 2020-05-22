@@ -66,6 +66,6 @@ export default {
         (new Currency(state.currencies))
           .convert(state.amount, state.currency, to)
       );
-    }
+    },
   },
 };
