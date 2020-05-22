@@ -7,16 +7,16 @@
     >
       <div
         class="donation-form-presets-item"
-        :class="{'donation-form-presets-active': preset === suggestion}"
+        :class="{'donation-form-presets-active': !amount && preset.value === suggestion}"
         v-for="(preset, key) of preparedPresets"
         :key="key"
-        @click="setSuggestion(preset)"
+        @click="setSuggestion(preset.value)"
       >
         <span
           v-if="currencySymbol"
           :class="{'donation-form-presets-item-symbol-rub': currency === 'RUB'}"
         >{{ currencySymbol }}</span>
-        <span>{{ numberFormatter.format(preset) }}</span>
+        <span>{{ preset.label }}</span>
       </div>
     </div>
 
@@ -29,8 +29,10 @@
       <input
         type="text"
         class="donation-form-input-input"
-        :value="suggestion"
-        @input.stop.prevent="onSuggestionChange"
+        :value="preparedAmount"
+        @input="onAmountEditClearValue"
+        @focus="onAmountEditClearValue"
+        @change="onAmountChange"
       />
 
       <select
@@ -53,6 +55,7 @@
 
 <script>
 import { mapState, mapActions } from 'vuex';
+import Currency from '@/classes/Currency';
 
 // For Safari & ie10
 if (!global.Intl) {
@@ -70,6 +73,7 @@ export default {
   data(){
     return {
       numberFormatter: new Intl.NumberFormat('en-US'),
+      CURRENCY_BASE: 'USD',
     };
   },
   computed:{
@@ -78,7 +82,11 @@ export default {
       currencies: (state) => state.Donation.currencies,
       currency: (state) => state.Donation.currency,
       suggestion: (state) => state.Donation.suggestion,
+      amount: (state) => state.Donation.amount,
     }),
+    currencyManager(){
+      return new Currency(this.currencies);
+    },
     currencyInfo(){
       return this.currencies.find(
         ({code}) => code === this.currency
@@ -89,7 +97,34 @@ export default {
     },
     preparedPresets(){
       return this.presets.map(
-        (preset) => this.convert(preset)
+        (preset) => {
+          const converted = this.currencyManager.pretty(
+            this.currencyManager.convert(
+              preset,
+              this.CURRENCY_BASE,
+              this.currency
+            )
+          );
+
+          return {
+            value: preset,
+            converted,
+            label: this.numberFormatter.format(converted),
+          }
+        }
+      );
+    },
+    preparedAmount(){
+      if (0 >= this.amount) {
+        const preset = this.preparedPresets.find(
+          ({value}) => value === this.suggestion
+        );
+
+        return preset ? preset.label: '';
+      }
+
+      return this.numberFormatter.format(
+        this.amount
       );
     },
   },
@@ -97,41 +132,39 @@ export default {
     ...mapActions([
       'setCurrency',
       'setSuggestion',
+      'setAmount',
     ]),
-    convert(value, pretty = true){
-      const rate = this.currencyInfo ? this.currencyInfo.rate: 1;
-
-      value = Math.ceil(value * rate);
-      if (!pretty) {
-        return value;
-      }
-
-      const divider = 10 ** ((String(value).length - 2) || 1);
-
-      return Math.ceil(value / divider) * divider;
-    },
     onChangeCurrency({target:{value}}){
       this.setCurrency(value);
     },
-    onSuggestionChange({target}){
-      target.value = target.value.replace(/[^0-9]+/, '')
+    onAmountChange({target: {value}}){
+      value = parseInt(
+        this.clearNumberValue(value),
+        10
+      );
+      if (isNaN(value)) {
+        this.setAmount(0);
+        return;
+      }
 
-      this.setSuggestion(target.value);
-    },
-  },
-  watch:{
-    preparedPresets(current, prev){
-      if (prev.includes(this.suggestion)) {
-        this.setSuggestion(
-          this.convert(this.suggestion)
-        );
+      const preset = this.preparedPresets.find(
+        ({converted}) => converted === value
+      );
+      if (!preset) {
+        this.setAmount(value);
         return;
       }
 
       this.setSuggestion(
-        this.convert(this.suggestion, false)
+        preset.value
       );
     },
+    onAmountEditClearValue({target}){
+      target.value = this.clearNumberValue(target.value);
+    },
+    clearNumberValue(value){
+      return value.replace(/[^0-9]+/g, '');
+    }
   },
 }
 </script>
@@ -164,7 +197,7 @@ export default {
   &-presets{
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
+    gap: 15px;
     margin-bottom: 2rem;
 
     &-item{
@@ -198,30 +231,23 @@ export default {
     font-size: 2em;
     border-radius: 5px;
     margin-bottom: 2rem;
-    position: relative;
-
-    &-currency,
-    &-currencies{
-      position: absolute;
-      top: 50%;
-      margin-top: -15px;
-    }
+    display: flex;
+    align-items: center;
 
     &-currency{
-      left: 15px;
       line-height: 30px;
     }
 
     &-input{
       width: 100%;
       vertical-align: top;
-      padding-left: 30px;
-      font-size: 2em;
+      padding-left: 15px;
+      font-size: 1.7em;
       color: #4c77d2;
+      flex-grow: 1;
     }
 
     &-currencies{
-      right: 15px;
       background: none;
       font-size: 0.8em;
       height: 30px;
