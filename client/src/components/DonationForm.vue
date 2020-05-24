@@ -186,6 +186,10 @@ export default {
         return;
       }
 
+      if (!this.amountValue) {
+        return alert(this.$t('DONATION_FAILURE_AMOUNT'));
+      }
+
       this.loading = true;
 
       const response = await fetch(
@@ -227,12 +231,14 @@ export default {
   "ru": {
     "DONATION_SUBMIT": "Пожертвовать",
     "DONATION_SUCCESS": "Спасибо за ваше пожертвование!",
-    "DONATION_FAILURE": "Не удалось создать пожертвование. Попробуйте повторить позже."
+    "DONATION_FAILURE": "Не удалось создать пожертвование. Попробуйте повторить позже.",
+    "DONATION_FAILURE_AMOUNT": "Заполните сумму пожертвования"
   },
   "en": {
     "DONATION_SUBMIT": "Donate",
     "DONATION_SUCCESS": "Thank you for your donation!",
-    "DONATION_FAILURE": "Failed to create donation. Please try again later."
+    "DONATION_FAILURE": "Failed to create donation. Please try again later.",
+    "DONATION_FAILURE_AMOUNT": "Donation amount must be more than 0"
   }
 }
 </i18n>
