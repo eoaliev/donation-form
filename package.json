@@ -19,7 +19,15 @@
   "author": "Emil Aliev <aliev.e.o@gmail.com>",
   "license": "ISC",
   "dependencies": {
-    "koa": "^2.12.0"
+    "config": "^3.3.1",
+    "koa": "^2.12.0",
+    "koa-bodyparser": "^4.3.0",
+    "koa-compress": "^4.0.1",
+    "koa-logger": "^3.2.1",
+    "koa-router": "^8.0.8",
+    "koa-static": "^5.0.0",
+    "koa-validate": "^1.0.7",
+    "mongoose": "^5.9.15"
   },
   "private": true,
   "devDependencies": {
